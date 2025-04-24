@@ -13,10 +13,10 @@ def prepare_output_directory():
 
 def save_to_excel(data_list):
     """
-    Save the extracted age and sex data to an Excel file.
+    Save the extracted age, sex, card number, telephone, address, kebele, and date data to an Excel file.
     
     Args:
-        data_list (list): List of dictionaries containing extracted age and sex data
+        data_list (list): List of dictionaries containing extracted data
         
     Returns:
         bool: True if successful, False otherwise
@@ -38,12 +38,17 @@ def save_to_excel(data_list):
             # Map data to columns
             for i, data in enumerate(data_list):
                 row = start_row + i
-                # Assuming column A is for Age and column B is for Sex in the template
+                # Column mapping (adjust as needed)
                 sheet[f"A{row}"] = data.get("Age")
                 sheet[f"B{row}"] = data.get("Sex")
-                # Add the image filename for reference in column C
+                sheet[f"C{row}"] = data.get("CardNumber")
+                sheet[f"D{row}"] = data.get("Telephone")
+                sheet[f"E{row}"] = data.get("Address")
+                sheet[f"F{row}"] = data.get("Kebele")
+                sheet[f"G{row}"] = data.get("Date")
+                # Add the image filename for reference in column H
                 if "image_filename" in data:
-                    sheet[f"C{row}"] = data.get("image_filename")
+                    sheet[f"H{row}"] = data.get("image_filename")
             
             # Save the workbook
             workbook.save(EXCEL_OUTPUT)
@@ -52,12 +57,17 @@ def save_to_excel(data_list):
         else:
             # No template, create a new Excel file
             logger.warning(f"No template found at {EXCEL_TEMPLATE}, creating new Excel file")
-            # Create a DataFrame with Age, Sex and image_filename columns
+            # Create a DataFrame with Age, Sex, CardNumber, Telephone, Address, Kebele, Date and image_filename columns
             simplified_data = []
             for item in data_list:
                 simplified_data.append({
                     "Age": item.get("Age"),
                     "Sex": item.get("Sex"),
+                    "Card Number": item.get("CardNumber"),
+                    "Telephone": item.get("Telephone"),
+                    "Address": item.get("Address"),
+                    "Kebele": item.get("Kebele"),
+                    "Date": item.get("Date"),
                     "Image Filename": item.get("image_filename", "")
                 })
             df = pd.DataFrame(simplified_data)
