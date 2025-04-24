@@ -27,12 +27,19 @@ def extract_text_from_image(base64_image):
         "X-Title": "Medical Card Extractor"  # Optional but helpful for analytics
     }
     
-    # Simpler prompt for gpt-4o-mini
+    # Updated prompt to extract both age and sex with XML tags
     prompt = """
-    This is a medical card. Please extract ONLY the patient's age from this image.
+    This is a medical card. Please extract the following information:
     
-    Respond with the age number only. For example, if the patient is 45 years old, just respond with "45".
-    Do not include any other text, explanations, or formatting.
+    1. Patient's age
+    2. Patient's sex/gender (only respond with "M" for male or "F" for female)
+    
+    Format your response exactly like this:
+    <age>NUMBER</age>
+    <sex>M_OR_F</sex>
+    
+    Only use "M" or "F" for sex (not "Male" or "Female").
+    Do not include any other text or explanations.
     """
     
     payload = {
@@ -40,7 +47,7 @@ def extract_text_from_image(base64_image):
         "messages": [
             {
                 "role": "system",
-                "content": "You are an AI assistant specialized in extracting specific information from images. Be concise and direct."
+                "content": "You are an AI assistant specialized in extracting specific information from images. Be concise and direct. Always follow the exact format requested."
             },
             {
                 "role": "user",
@@ -55,7 +62,7 @@ def extract_text_from_image(base64_image):
                 ]
             }
         ],
-        "max_tokens": 50,     # Reduced token limit since we only need a number
+        "max_tokens": 50,     # Reduced token limit since we only need two short values
         "temperature": 0.1    # Lower temperature for more deterministic responses
     }
     
@@ -106,15 +113,28 @@ def extract_text_from_image(base64_image):
             extracted_text = response_data['choices'][0]['message']['content']
             logger.info(f"Successfully extracted text from image: '{extracted_text}'")
             
-            # Format the response to be compatible with our parser
-            # Wrap the age in XML tags if it's just a number
-            if extracted_text.strip().isdigit():
-                formatted_response = f"<age>{extracted_text.strip()}</age>"
+            # Check if the response already has XML tags
+            if "<age>" in extracted_text and "<sex>" in extracted_text:
+                return extracted_text
+                
+            # If not, try to format it with XML tags (fallback methods)
+            
+            # Look for age and sex separately
+            import re
+            
+            # For responses without proper formatting
+            age_match = re.search(r'\b(\d+)\b', extracted_text)
+            sex_match = re.search(r'\b([MF])\b', extracted_text)
+            
+            if age_match and sex_match:
+                age = age_match.group(1)
+                sex = sex_match.group(1)
+                formatted_response = f"<age>{age}</age>\n<sex>{sex}</sex>"
                 logger.info(f"Formatted response: {formatted_response}")
                 return formatted_response
-            else:
-                # Return as is for the parser to handle
-                return extracted_text
+            
+            # As a last resort, return the raw text
+            return extracted_text
                 
         except KeyError as e:
             logger.error(f"Unexpected response structure: {e}")

@@ -13,10 +13,10 @@ def prepare_output_directory():
 
 def save_to_excel(data_list):
     """
-    Save the extracted age data to an Excel file.
+    Save the extracted age and sex data to an Excel file.
     
     Args:
-        data_list (list): List of dictionaries containing extracted age data
+        data_list (list): List of dictionaries containing extracted age and sex data
         
     Returns:
         bool: True if successful, False otherwise
@@ -35,32 +35,34 @@ def save_to_excel(data_list):
             # Start row (adjust as needed based on template)
             start_row = 2
             
-            # Map age data to column
+            # Map data to columns
             for i, data in enumerate(data_list):
                 row = start_row + i
-                # Assuming column A is for Age in the template
+                # Assuming column A is for Age and column B is for Sex in the template
                 sheet[f"A{row}"] = data.get("Age")
-                # Add the image filename for reference in column B
+                sheet[f"B{row}"] = data.get("Sex")
+                # Add the image filename for reference in column C
                 if "image_filename" in data:
-                    sheet[f"B{row}"] = data.get("image_filename")
+                    sheet[f"C{row}"] = data.get("image_filename")
             
             # Save the workbook
             workbook.save(EXCEL_OUTPUT)
-            logger.info(f"Successfully saved age data to {EXCEL_OUTPUT} based on template")
+            logger.info(f"Successfully saved data to {EXCEL_OUTPUT} based on template")
             
         else:
             # No template, create a new Excel file
             logger.warning(f"No template found at {EXCEL_TEMPLATE}, creating new Excel file")
-            # Create a DataFrame with just Age and image_filename columns
+            # Create a DataFrame with Age, Sex and image_filename columns
             simplified_data = []
             for item in data_list:
                 simplified_data.append({
                     "Age": item.get("Age"),
+                    "Sex": item.get("Sex"),
                     "Image Filename": item.get("image_filename", "")
                 })
             df = pd.DataFrame(simplified_data)
             df.to_excel(EXCEL_OUTPUT, index=False)
-            logger.info(f"Successfully saved age data to {EXCEL_OUTPUT}")
+            logger.info(f"Successfully saved data to {EXCEL_OUTPUT}")
         
         return True
         

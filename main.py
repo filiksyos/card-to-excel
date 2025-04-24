@@ -34,7 +34,7 @@ def process_image(image_path):
         
         # Step 3: Parse the extracted text
         parsed_data = parse_extraction_result(extracted_text)
-        if not parsed_data:
+        if not parsed_data or (parsed_data.get("Age") is None and parsed_data.get("Sex") is None):
             logger.error(f"Failed to parse extraction result for image: {image_path}")
             return None
         
@@ -42,11 +42,13 @@ def process_image(image_path):
         is_valid, messages = validate_data(parsed_data)
         if not is_valid:
             logger.warning(f"Data validation issues for {image_path}: {', '.join(messages)}")
+            # We'll still return the data even if not valid, but with a warning
         
         # Add the image filename for reference
         parsed_data['image_filename'] = os.path.basename(image_path)
         
         logger.info(f"Successfully processed image: {image_path}")
+        logger.info(f"Extracted data: Age={parsed_data.get('Age')}, Sex={parsed_data.get('Sex')}")
         return parsed_data
         
     except Exception as e:

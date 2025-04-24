@@ -5,6 +5,7 @@ import base64
 from PIL import Image
 from io import BytesIO
 import json
+import re
 
 # Load environment variables
 load_dotenv()
@@ -108,15 +109,27 @@ def test_image_api():
         "X-Title": "Medical Card Extractor Test"
     }
     
-    # Simpler prompt for gpt-4o-mini
-    prompt = "This is a medical card. Please extract ONLY the patient's age from this image. Respond with the age number only."
+    # Updated prompt to extract both age and sex
+    prompt = """
+    This is a medical card. Please extract the following information:
+    
+    1. Patient's age
+    2. Patient's sex/gender (only respond with "M" for male or "F" for female)
+    
+    Format your response exactly like this:
+    <age>NUMBER</age>
+    <sex>M_OR_F</sex>
+    
+    Only use "M" or "F" for sex (not "Male" or "Female").
+    Do not include any other text or explanations.
+    """
     
     payload = {
         "model": "openai/gpt-4o-mini",  # Updated to gpt-4o-mini
         "messages": [
             {
                 "role": "system",
-                "content": "You are an AI assistant specialized in extracting specific information from images. Be concise and direct."
+                "content": "You are an AI assistant specialized in extracting specific information from images. Be concise and direct. Always follow the exact format requested."
             },
             {
                 "role": "user",
@@ -131,7 +144,7 @@ def test_image_api():
                 ]
             }
         ],
-        "max_tokens": 50,     # Reduced token limit since we only need a number
+        "max_tokens": 50,     # Reduced token limit since we only need two short values
         "temperature": 0.1    # Lower temperature for more deterministic responses
     }
     
@@ -150,21 +163,36 @@ def test_image_api():
                 content = data['choices'][0]['message']['content']
                 print(f"Response content: {content}")
                 
-                # Try to parse the age
-                import re
+                # Try to parse the age and sex
                 try:
-                    # Check if it's just a number
-                    if content.strip().isdigit():
-                        print(f"Extracted age: {content.strip()}")
+                    # Look for XML tags
+                    age_match = re.search(r'<age>(.*?)</age>', content)
+                    sex_match = re.search(r'<sex>(.*?)</sex>', content)
+                    
+                    if age_match:
+                        print(f"Extracted age: {age_match.group(1)}")
                     else:
-                        # Try to find a number in the response
-                        match = re.search(r'(\d+)', content)
-                        if match:
-                            print(f"Extracted age: {match.group(1)}")
-                        else:
-                            print("Could not extract age from response")
+                        print("Could not find age in XML format")
+                        
+                    if sex_match:
+                        print(f"Extracted sex: {sex_match.group(1)}")
+                    else:
+                        print("Could not find sex in XML format")
+                        
+                    # If XML tags not found, try alternate patterns
+                    if not age_match and not sex_match:
+                        # Try to find age and sex in other formats
+                        age_number = re.search(r'\b(\d+)\b', content)
+                        sex_letter = re.search(r'\b([MF])\b', content)
+                        
+                        if age_number:
+                            print(f"Extracted age (alternative): {age_number.group(1)}")
+                        
+                        if sex_letter:
+                            print(f"Extracted sex (alternative): {sex_letter.group(1)}")
+                            
                 except Exception as e:
-                    print(f"Error parsing age: {str(e)}")
+                    print(f"Error parsing response: {str(e)}")
             else:
                 print(f"Unexpected response structure: {json.dumps(data, indent=2)}")
         else:
