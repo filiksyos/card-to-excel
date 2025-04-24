@@ -11,7 +11,7 @@ alwaysApply: true
 # Medical Card Data Extraction Project Summary
 
 ## Project Overview
-This Python application processes images of medical cards using OpenAI's GPT-4 vision API (via OpenRouter). It extracts specific data fields from each card (MRN, gender, address, card number, etc.) and compiles them into a structured Excel file based on a predefined template.
+This Python application processes images of medical cards using OpenAI's o4-mini API (via OpenRouter). It extracts specific data fields from each card (MRN, gender, address, card number, etc.) and compiles them into a structured Excel file based on a predefined template.
 
 ## Key Features
 - Process multiple image formats (JPG, PNG) from a directory
