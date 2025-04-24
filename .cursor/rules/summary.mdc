@@ -1,0 +1,100 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: Extracts data from medical card images and outputs to Excel
+globs: *.py
+alwaysApply: true
+---
+# Medical Card Data Extraction Project Summary
+
+## Project Overview
+This Python application processes images of medical cards using OpenAI's GPT-4 vision API (via OpenRouter). It extracts specific data fields from each card (MRN, gender, address, card number, etc.) and compiles them into a structured Excel file based on a predefined template.
+
+## Key Features
+- Process multiple image formats (JPG, PNG) from a directory
+- Extract medical card data including MRN, gender, address, card number, phone, age, etc.
+- Parse extracted data into structured format
+- Output data to Excel based on existing template
+- Process images in batch (approx. 100 cards)
+- Command-line based processing without GUI
+
+## Tech Stack
+- **Language**: Python 3.x
+- **Image Processing**: Pillow
+- **API Integration**: Requests library with OpenRouter API (o4-mini model)
+- **Data Handling**: Pandas
+- **Excel Operations**: Openpyxl
+- **Configuration**: Environment variables (.env)
+- **Logging**: Python's logging module
+
+## Architecture
+The project follows a modular script-based architecture:
+
+1. **Image Processing**:
+   - Reads images from specified directory
+   - Prepares images for API submission
+
+2. **API Integration**:
+   - Sends images to OpenRouter API
+   - Handles authentication and rate limiting
+   - Processes API responses
+
+3. **Data Extraction**:
+   - Parses text from API responses
+   - Extracts required fields (MRN, gender, address, etc.)
+   - Validates and structures extracted data
+
+4. **Excel Generation**:
+   - Loads data into pandas DataFrames
+   - Formats according to template requirements
+   - Outputs final Excel file
+
+## Project Structure
+- `main.py`: Main script coordinating all operations
+- `config.py`: Configuration settings loaded from environment variables
+- `image_handler.py`: Image processing functions
+- `api_handler.py`: API communication logic
+- `data_parser.py`: Data extraction and parsing
+- `excel_handler.py`: Excel operations
+- `logger.py`: Custom logging configuration
+- `.env`: Environment variables (gitignored)
+- `requirements.txt`: Project dependencies
+- `output/`: Generated Excel files
+
+## Development Approach
+- Modular design with separation of concerns
+- Comprehensive error handling and logging
+- Well-commented code for better understanding
+- Script-based batch processing
+- Simple directory-based file handling
+- Environment variables for configuration management
+
+## Data Flow
+1. Read images from directory
+2. Process each image for optimal API submission
+3. Send to OpenRouter API for text extraction
+4. Parse returned text for medical card fields
+5. Structure data according to Excel template requirements
+6. Generate final Excel output file
+7. Log processing results and any errors
+
+## Fields to Extract
+- MRN (Medical Record Number)
+- Gender
+- Address/Street ID
+- Ketema (City)
+- Card Kutr (Card Number)
+- Phone Number
+- Age
+- Month (for new porn)
+- Registered Date
+
+## Logging and Error Handling
+- Detailed logging of each processing step
+- Error handling with specific error types
+- Recovery mechanisms for API failures
+
+- Validation of extracted data
