@@ -137,9 +137,10 @@ def parse_extraction_result(extraction_text):
     try:
         logger.debug(f"Parsing extraction result: '{extraction_text}'")
         
-        result = {"Age": None, "Sex": None, "CardNumber": None, "Telephone": None, "Address": None, "Kebele": None, "Date": None}
+        result = {"PatientName": None, "Age": None, "Sex": None, "CardNumber": None, "Telephone": None, "Address": None, "Kebele": None, "Date": None}
         
-        # First, try to extract age, sex, card number, telephone, address, kebele, and date from XML tags if present
+        # First, try to extract patient_name, age, sex, card number, telephone, address, kebele, and date from XML tags if present
+        patient_name_pattern = r'<patient_name>(.*?)</patient_name>'
         age_pattern = r'<age>(.*?)</age>'
         sex_pattern = r'<sex>(.*?)</sex>'
         card_number_pattern = r'<card_number>(.*?)</card_number>'
@@ -148,6 +149,13 @@ def parse_extraction_result(extraction_text):
         kebele_pattern = r'<kebele>(.*?)</kebele>'
         date_pattern = r'<date>(.*?)</date>'
         
+        # Extract patient name
+        patient_name_match = re.search(patient_name_pattern, extraction_text, re.DOTALL)
+        if patient_name_match:
+            patient_name_value = patient_name_match.group(1).strip()
+            logger.info(f"Successfully extracted patient name from XML tags: {patient_name_value}")
+            result["PatientName"] = patient_name_value
+            
         # Extract age
         age_match = re.search(age_pattern, extraction_text, re.DOTALL)
         if age_match:
@@ -227,12 +235,32 @@ def parse_extraction_result(extraction_text):
                 logger.warning("Extracted date is empty, ignoring")
         
         # If any field is extracted, return the result
-        if (result["Age"] is not None or result["Sex"] is not None or result["CardNumber"] is not None or 
+        if (result["PatientName"] is not None or result["Age"] is not None or result["Sex"] is not None or result["CardNumber"] is not None or 
             result["Telephone"] is not None or result["Address"] is not None or result["Kebele"] is not None or
             result["Date"] is not None):
             return result
             
         # Try fallback methods for missing fields
+        
+        # Patient name fallback methods if not found
+        if result["PatientName"] is None:
+            # Look for name patterns
+            name_patterns = [
+                r'(?:name|patient name|full name)[:\s]*([\w\s]+)',  # "name: John Doe" patterns
+                r'(?:patient|person)[\s]*(?:is|named)[\s]*([\w\s]+)',  # "patient is John Doe" patterns
+                r'\b([A-Za-z]+\s+[A-Za-z]+)\b',  # Basic two-word name pattern
+            ]
+            
+            for pattern in name_patterns:
+                match = re.search(pattern, extraction_text, re.IGNORECASE)
+                if match:
+                    name_value = match.group(1).strip()
+                    # Check if it looks like a two-word name
+                    name_parts = name_value.split()
+                    if len(name_parts) == 2:
+                        logger.info(f"Extracted patient name using pattern '{pattern}': {name_value}")
+                        result["PatientName"] = name_value
+                        break
         
         # Age fallback methods if not found
         if result["Age"] is None:
@@ -422,6 +450,9 @@ def parse_extraction_result(extraction_text):
                         logger.warning(f"Extracted date '{date_value}' is not valid (must be DD/MM/YYYY in Ethiopian calendar)")
         
         # If we've reached here and couldn't find any fields, log error
+        if result["PatientName"] is None:
+            logger.error("Failed to extract any potential patient name value")
+            
         if result["Age"] is None:
             logger.error("Failed to extract any potential age value")
             
@@ -443,7 +474,7 @@ def parse_extraction_result(extraction_text):
         
     except Exception as e:
         logger.error(f"Error parsing extraction result: {str(e)}")
-        return {"Age": None, "Sex": None, "CardNumber": None, "Telephone": None, "Address": None, "Kebele": None, "Date": None}
+        return {"PatientName": None, "Age": None, "Sex": None, "CardNumber": None, "Telephone": None, "Address": None, "Kebele": None, "Date": None}
 
 def validate_data(data):
     """
@@ -457,6 +488,18 @@ def validate_data(data):
     """
     is_valid = True
     messages = []
+    
+    # Check if patient name was extracted
+    if not data.get("PatientName"):
+        is_valid = False
+        messages.append("Patient name not found in the extracted data")
+    else:
+        # Validate that the patient name has at least two words
+        patient_name = data.get("PatientName").strip()
+        name_parts = patient_name.split()
+        if len(name_parts) < 2:
+            is_valid = False
+            messages.append(f"Patient name '{patient_name}' doesn't contain both first and last name")
     
     # Check if age was extracted
     if not data.get("Age"):
