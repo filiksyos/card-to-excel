@@ -1,0 +1,31 @@
+# Python virtual environment
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables and secrets
+.env
+
+# Log files
+*.log
+app.log
+
+# Media and output files
+images/*.jpg
+images/*.jpeg
+images/*.png
+output/*.xlsx
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Excel templates (keeping template.xlsx in version control but ignoring user-modified ones)
+# template.xlsx is kept in version control as a starting point 
