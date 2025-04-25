@@ -63,7 +63,7 @@ Extract patient info from medical card images and output to Excel.
 - `main.py`: Main script coordinating all operations
 - `config.py`: Configuration settings from environment variables
 - `image_handler.py`: Image processing functions
-- `api_handler.py`: API communication with OpenRouter (using o4-mini model)
+- `api_handler.py`: API communication with OpenRouter (using GPT 4o-mini model)
 - `data_parser.py`: Age data extraction using XML-style tags
 - `excel_handler.py`: Excel operations
 - `logger.py`: Logging configuration
