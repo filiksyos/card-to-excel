@@ -1,6 +1,6 @@
-# Medical Card Age Extraction
+# Medical Card Information Extraction
 
-Extract patient age from medical card images and output to Excel.
+Extract patient info from medical card images and output to Excel.
 
 ## Quick Setup (Windows)
 
@@ -74,7 +74,13 @@ Extract patient age from medical card images and output to Excel.
 
 ## Fields Extracted
 
-- Age (only)
+- Name
+- Sex
+- Age
+- Address
+- Telephone number
+- Registration date
+
 
 ## XML Tag Format
 
