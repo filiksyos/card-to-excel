@@ -13,7 +13,7 @@ def prepare_output_directory():
 
 def save_to_excel(data_list):
     """
-    Save the extracted patient name, age, sex, card number, telephone, address, kebele, and date data to an Excel file.
+    Save the extracted patient name, age, sex, telephone, address, kebele, and date data to an Excel file.
     
     Args:
         data_list (list): List of dictionaries containing extracted data
@@ -42,14 +42,13 @@ def save_to_excel(data_list):
                 sheet[f"A{row}"] = data.get("PatientName")
                 sheet[f"B{row}"] = data.get("Age")
                 sheet[f"C{row}"] = data.get("Sex")
-                sheet[f"D{row}"] = data.get("CardNumber")
-                sheet[f"E{row}"] = data.get("Telephone")
-                sheet[f"F{row}"] = data.get("Address")
-                sheet[f"G{row}"] = data.get("Kebele")
-                sheet[f"H{row}"] = data.get("Date")
-                # Add the image filename for reference in column I
+                sheet[f"D{row}"] = data.get("Telephone")
+                sheet[f"E{row}"] = data.get("Address")
+                sheet[f"F{row}"] = data.get("Kebele")
+                sheet[f"G{row}"] = data.get("Date")
+                # Add the image filename for reference in column H
                 if "image_filename" in data:
-                    sheet[f"I{row}"] = data.get("image_filename")
+                    sheet[f"H{row}"] = data.get("image_filename")
             
             # Save the workbook
             workbook.save(EXCEL_OUTPUT)
@@ -58,14 +57,13 @@ def save_to_excel(data_list):
         else:
             # No template, create a new Excel file
             logger.warning(f"No template found at {EXCEL_TEMPLATE}, creating new Excel file")
-            # Create a DataFrame with PatientName, Age, Sex, CardNumber, Telephone, Address, Kebele, Date and image_filename columns
+            # Create a DataFrame with PatientName, Age, Sex, Telephone, Address, Kebele, Date and image_filename columns
             simplified_data = []
             for item in data_list:
                 simplified_data.append({
                     "Patient Name": item.get("PatientName"),
                     "Age": item.get("Age"),
                     "Sex": item.get("Sex"),
-                    "Card Number": item.get("CardNumber"),
                     "Telephone": item.get("Telephone"),
                     "Address": item.get("Address"),
                     "Kebele": item.get("Kebele"),

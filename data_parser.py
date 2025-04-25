@@ -137,13 +137,12 @@ def parse_extraction_result(extraction_text):
     try:
         logger.debug(f"Parsing extraction result: '{extraction_text}'")
         
-        result = {"PatientName": None, "Age": None, "Sex": None, "CardNumber": None, "Telephone": None, "Address": None, "Kebele": None, "Date": None}
+        result = {"PatientName": None, "Age": None, "Sex": None, "Telephone": None, "Address": None, "Kebele": None, "Date": None}
         
-        # First, try to extract patient_name, age, sex, card number, telephone, address, kebele, and date from XML tags if present
+        # First, try to extract patient_name, age, sex, telephone, address, kebele, and date from XML tags if present
         patient_name_pattern = r'<patient_name>(.*?)</patient_name>'
         age_pattern = r'<age>(.*?)</age>'
         sex_pattern = r'<sex>(.*?)</sex>'
-        card_number_pattern = r'<card_number>(.*?)</card_number>'
         telephone_pattern = r'<telephone>(.*?)</telephone>'
         address_pattern = r'<address>(.*?)</address>'
         kebele_pattern = r'<kebele>(.*?)</kebele>'
@@ -173,17 +172,6 @@ def parse_extraction_result(extraction_text):
                 result["Sex"] = sex_value
             else:
                 logger.warning(f"Extracted sex value '{sex_value}' is not 'M' or 'F', ignoring")
-        
-        # Extract card number
-        card_number_match = re.search(card_number_pattern, extraction_text, re.DOTALL)
-        if card_number_match:
-            card_number_value = card_number_match.group(1).strip()
-            # Ensure card number is exactly 8 digits
-            if re.match(r'^\d{8}$', card_number_value):
-                logger.info(f"Successfully extracted card number from XML tags: {card_number_value}")
-                result["CardNumber"] = card_number_value
-            else:
-                logger.warning(f"Extracted card number '{card_number_value}' is not 8 digits, ignoring")
         
         # Extract telephone number
         telephone_match = re.search(telephone_pattern, extraction_text, re.DOTALL)
@@ -235,7 +223,7 @@ def parse_extraction_result(extraction_text):
                 logger.warning("Extracted date is empty, ignoring")
         
         # If any field is extracted, return the result
-        if (result["PatientName"] is not None or result["Age"] is not None or result["Sex"] is not None or result["CardNumber"] is not None or 
+        if (result["PatientName"] is not None or result["Age"] is not None or result["Sex"] is not None or 
             result["Telephone"] is not None or result["Address"] is not None or result["Kebele"] is not None or
             result["Date"] is not None):
             return result
@@ -322,24 +310,6 @@ def parse_extraction_result(extraction_text):
                     if sex_value in ["M", "F"]:
                         logger.info(f"Extracted sex using pattern '{pattern}': {sex_value}")
                         result["Sex"] = sex_value
-                        break
-                        
-        # Card number fallback if not found
-        if result["CardNumber"] is None:
-            # Look for any 8-digit number
-            card_number_patterns = [
-                r'\b(\d{8})\b',  # Basic 8-digit pattern
-                r'(?:card|card number|card no)[:\s]*(\d{8})',  # "card: 12345678" patterns
-                r'(?:card|card number|card no)[:\s]*#?(\d{8})'  # "card #12345678" patterns
-            ]
-            
-            for pattern in card_number_patterns:
-                match = re.search(pattern, extraction_text, re.IGNORECASE)
-                if match:
-                    card_number_value = match.group(1).strip()
-                    if re.match(r'^\d{8}$', card_number_value):  # Ensure exactly 8 digits
-                        logger.info(f"Extracted card number using pattern '{pattern}': {card_number_value}")
-                        result["CardNumber"] = card_number_value
                         break
         
         # Telephone number fallback if not found
@@ -459,9 +429,6 @@ def parse_extraction_result(extraction_text):
         if result["Sex"] is None:
             logger.error("Failed to extract any potential sex value")
             
-        if result["CardNumber"] is None:
-            logger.error("Failed to extract any potential card number value")
-            
         if result["Telephone"] is None:
             logger.error("Failed to extract any potential telephone number value")
             
@@ -474,7 +441,7 @@ def parse_extraction_result(extraction_text):
         
     except Exception as e:
         logger.error(f"Error parsing extraction result: {str(e)}")
-        return {"PatientName": None, "Age": None, "Sex": None, "CardNumber": None, "Telephone": None, "Address": None, "Kebele": None, "Date": None}
+        return {"PatientName": None, "Age": None, "Sex": None, "Telephone": None, "Address": None, "Kebele": None, "Date": None}
 
 def validate_data(data):
     """
@@ -532,27 +499,6 @@ def validate_data(data):
         if sex not in ["M", "F"]:
             is_valid = False
             messages.append(f"Sex value '{sex}' is not 'M' or 'F'")
-    
-    # Check if card number was extracted (this field is optional for backward compatibility)
-    if data.get("CardNumber"):
-        # Validate that card number is exactly 8 digits
-        card_number = data.get("CardNumber")
-        if not re.match(r'^\d{8}$', card_number):
-            is_valid = False
-            messages.append(f"Card number '{card_number}' is not exactly 8 digits")
-        else:
-            # Validate date format in the first 6 digits (YYMMDD)
-            year = int(card_number[0:2])
-            month = int(card_number[2:4])
-            day = int(card_number[4:6])
-            
-            if month < 1 or month > 12:
-                is_valid = False
-                messages.append(f"Card number has invalid month ({month})")
-                
-            if day < 1 or day > 31:
-                is_valid = False
-                messages.append(f"Card number has invalid day ({day})")
     
     # Check if telephone number was extracted (this field is optional for backward compatibility)
     if data.get("Telephone"):

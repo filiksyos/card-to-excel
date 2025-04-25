@@ -27,25 +27,21 @@ def extract_text_from_image(base64_image):
         "X-Title": "Medical Card Extractor"  # Optional but helpful for analytics
     }
     
-    # Updated prompt to extract patient_name, age, sex, card number, telephone, address, kebele, and date with XML tags
+    # Updated prompt to extract patient_name, age, sex, telephone, address, kebele, and date with XML tags
     prompt = """
     This is a medical card. Please extract the following information:
     
     1. Patient's name (first name and last name only, Ethiopian naming style)
     2. Patient's age
     3. Patient's sex/gender (only respond with "M" for male or "F" for female)
-    4. Card number (exactly 8 digits)
-    5. Telephone number (Ethiopian format, exactly 10 digits)
-    6. Address/location (e.g. city or town name)
-    7. Kebele (2-digit district number in Ethiopia, from 01-17, might be blank)
-    8. Date (in Ethiopian calendar, DD/MM/YYYY format)
+    4. Telephone number (Ethiopian format, exactly 10 digits)
+    5. Address/location (e.g. city or town name)
+    6. Kebele (2-digit district number in Ethiopia, from 01-17, might be blank)
+    7. Date (in Ethiopian calendar, DD/MM/YYYY format)
     
     Note about patient name: Ethiopian names may be different from Western names. Extract the name exactly as it appears.
     For example, "Ephraim" in Western nomenclature might be "Efrem" in Ethiopian nomenclature. 
     The name should include only first name and last name (two words).
-    
-    Note about card number: It should be exactly 8 digits. The first 6 digits represent the registration date (YYMMDD format), 
-    and the last 2 digits represent the position of registration on that day.
     
     Note about telephone number: Ethiopian telephone numbers are exactly 10 digits, often starting with 09.
     
@@ -62,14 +58,12 @@ def extract_text_from_image(base64_image):
     <patient_name>FIRST_NAME LAST_NAME</patient_name>
     <age>NUMBER</age>
     <sex>M_OR_F</sex>
-    <card_number>8_DIGITS</card_number>
     <telephone>10_DIGITS</telephone>
     <address>LOCATION</address>
     <kebele>2_DIGITS_OR_BLANK</kebele>
     <date>DD/MM/YYYY</date>
     
     Only use "M" or "F" for sex (not "Male" or "Female").
-    Card number must be exactly 8 digits.
     Telephone number must be exactly 10 digits in Ethiopian format.
     For address, provide the city/town name as it appears.
     Kebele should be a 2-digit number from 01-17 or left blank if not found.
@@ -154,14 +148,13 @@ def extract_text_from_image(base64_image):
                 
             # If not, try to format it with XML tags (fallback methods)
             
-            # Look for patient_name, age, sex, card number, telephone, address, kebele, and date separately
+            # Look for patient_name, age, sex, telephone, address, kebele, and date separately
             import re
             
             # For responses without proper formatting
             name_match = re.search(r'\b([A-Za-z]+\s+[A-Za-z]+)\b', extracted_text)
             age_match = re.search(r'\b(\d+)\b', extracted_text)
             sex_match = re.search(r'\b([MF])\b', extracted_text)
-            card_match = re.search(r'\b(\d{8})\b', extracted_text)  # Look for 8-digit number
             telephone_match = re.search(r'\b(0\d{9})\b', extracted_text)  # Look for 10-digit number starting with 0
             
             # Address, Kebele, and Date will be extracted by the data parser with more complex logic
@@ -170,12 +163,9 @@ def extract_text_from_image(base64_image):
                 name = name_match.group(1)
                 age = age_match.group(1)
                 sex = sex_match.group(1)
-                card_number = card_match.group(1) if card_match else ""
                 telephone = telephone_match.group(1) if telephone_match else ""
                 
                 formatted_response = f"<patient_name>{name}</patient_name>\n<age>{age}</age>\n<sex>{sex}</sex>"
-                if card_number:
-                    formatted_response += f"\n<card_number>{card_number}</card_number>"
                 if telephone:
                     formatted_response += f"\n<telephone>{telephone}</telephone>"
                 
