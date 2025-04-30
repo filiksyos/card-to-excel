@@ -7,7 +7,7 @@ load_dotenv()
 # API Configuration
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-MODEL_NAME = "openai/gpt-4o-mini"  # Updated to gpt-4o-mini
+MODEL_NAME = "google/gemini-2.0-flash-001"  # Updated to gpt-4.1-nano
 
 # Image Processing Configuration
 IMAGE_DIR = os.getenv('IMAGE_DIR', 'images')

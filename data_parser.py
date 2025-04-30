@@ -137,14 +137,13 @@ def parse_extraction_result(extraction_text):
     try:
         logger.debug(f"Parsing extraction result: '{extraction_text}'")
         
-        result = {"PatientName": None, "Age": None, "Sex": None, "Telephone": None, "Address": None, "Kebele": None, "Date": None}
+        result = {"PatientName": None, "Age": None, "Sex": None, "Telephone": None, "Kebele": None, "Date": None}
         
-        # First, try to extract patient_name, age, sex, telephone, address, kebele, and date from XML tags if present
+        # First, try to extract patient_name, age, sex, telephone, kebele, and date from XML tags if present
         patient_name_pattern = r'<patient_name>(.*?)</patient_name>'
         age_pattern = r'<age>(.*?)</age>'
         sex_pattern = r'<sex>(.*?)</sex>'
         telephone_pattern = r'<telephone>(.*?)</telephone>'
-        address_pattern = r'<address>(.*?)</address>'
         kebele_pattern = r'<kebele>(.*?)</kebele>'
         date_pattern = r'<date>(.*?)</date>'
         
@@ -184,18 +183,6 @@ def parse_extraction_result(extraction_text):
             else:
                 logger.warning(f"Extracted telephone number '{telephone_value}' is not 10 digits, ignoring")
         
-        # Extract address
-        address_match = re.search(address_pattern, extraction_text, re.DOTALL)
-        if address_match:
-            address_value = address_match.group(1).strip()
-            if address_value:
-                # Normalize address (handle Bahir Dar variations)
-                normalized_address = normalize_address(address_value)
-                logger.info(f"Successfully extracted address from XML tags: '{address_value}', normalized to: '{normalized_address}'")
-                result["Address"] = normalized_address
-            else:
-                logger.warning("Extracted address is empty, ignoring")
-        
         # Extract kebele
         kebele_match = re.search(kebele_pattern, extraction_text, re.DOTALL)
         if kebele_match:
@@ -212,20 +199,22 @@ def parse_extraction_result(extraction_text):
         if date_match:
             date_value = date_match.group(1).strip()
             if date_value:
-                # Validate and normalize Ethiopian date
-                if validate_ethiopian_date(date_value):
-                    normalized_date = normalize_ethiopian_date(date_value)
-                    logger.info(f"Successfully extracted date from XML tags: '{date_value}', normalized to: '{normalized_date}'")
-                    result["Date"] = normalized_date
-                else:
-                    logger.warning(f"Extracted date '{date_value}' is not in valid Ethiopian format (DD/MM/YYYY), ignoring")
+                # Validate that it's a valid day (1-30)
+                try:
+                    day = int(date_value)
+                    if 1 <= day <= 30:
+                        logger.info(f"Successfully extracted day from date: {day}")
+                        result["Date"] = str(day)
+                    else:
+                        logger.warning(f"Extracted day '{day}' is not in valid range (1-30)")
+                except ValueError:
+                    logger.warning(f"Extracted date value '{date_value}' is not a valid number")
             else:
                 logger.warning("Extracted date is empty, ignoring")
         
         # If any field is extracted, return the result
         if (result["PatientName"] is not None or result["Age"] is not None or result["Sex"] is not None or 
-            result["Telephone"] is not None or result["Address"] is not None or result["Kebele"] is not None or
-            result["Date"] is not None):
+            result["Telephone"] is not None or result["Kebele"] is not None or result["Date"] is not None):
             return result
             
         # Try fallback methods for missing fields
@@ -336,89 +325,6 @@ def parse_extraction_result(extraction_text):
                         result["Telephone"] = telephone_value
                         break
         
-        # Address fallback if not found
-        if result["Address"] is None:
-            # Look for address mentions
-            address_patterns = [
-                r'(?:address|location|city|town)[:\s]*([\w\s/]+)',  # "address: Bahir Dar" patterns
-                r'(?:from|in|at)[:\s]*([\w\s/]+)',  # "from Bahir Dar" patterns
-                r'\b(bahir\s*dar|bdr|b/dar|b/dr)\b',  # Bahir Dar variations
-                r'\b(addis\s*ababa|aa|a\.a\.)\b',  # Addis Ababa variations
-                r'\b(gondar|gonder)\b',  # Other common Ethiopian cities
-                r'\b(hawassa|awassa)\b',
-                r'\b(mekelle|mekele)\b',
-                r'\b(dire\s*dawa)\b',
-                r'\b(dessie|dese)\b',
-                r'\b(jimma|jima)\b',
-                r'\b(debre\s*birhan)\b',
-                r'\b(debre\s*markos)\b',
-                r'\b(woldia|woldiya)\b'
-            ]
-            
-            for pattern in address_patterns:
-                match = re.search(pattern, extraction_text, re.IGNORECASE)
-                if match:
-                    address_value = match.group(1).strip()
-                    normalized_address = normalize_address(address_value)
-                    logger.info(f"Extracted address using pattern '{pattern}': '{address_value}', normalized to: '{normalized_address}'")
-                    result["Address"] = normalized_address
-                    break
-        
-        # Kebele fallback if not found
-        if result["Kebele"] is None:
-            # Look for kebele mentions
-            kebele_patterns = [
-                r'(?:kebele|keb)[:\s]*(\d{1,2})',  # "kebele: 05" patterns
-                r'(?:kebele|keb)[\s]*#?(\d{1,2})',  # "kebele #5" patterns
-                r'(?:district|dist)[:\s]*(\d{1,2})',  # "district: 05" patterns
-                r'\bkeb\.?\s*(\d{1,2})\b',  # "keb. 5" patterns
-            ]
-            
-            for pattern in kebele_patterns:
-                match = re.search(pattern, extraction_text, re.IGNORECASE)
-                if match:
-                    kebele_value = match.group(1).strip()
-                    
-                    # If it's a single digit, pad with leading zero
-                    if re.match(r'^\d$', kebele_value):
-                        kebele_value = f"0{kebele_value}"
-                    
-                    if validate_kebele(kebele_value):
-                        logger.info(f"Extracted kebele using pattern '{pattern}': '{kebele_value}'")
-                        result["Kebele"] = kebele_value
-                        break
-                    else:
-                        logger.warning(f"Extracted kebele '{kebele_value}' is not valid (must be 01-17)")
-        
-        # Date fallback if not found
-        if result["Date"] is None:
-            # Look for date mentions
-            date_patterns = [
-                r'(?:date)[:\s]*(\d{1,2}/\d{1,2}/\d{4})',  # "date: 12/03/2012" patterns
-                r'(\d{1,2}/\d{1,2}/\d{4})',  # Basic DD/MM/YYYY pattern
-                r'(\d{1,2}-\d{1,2}-\d{4})',  # DD-MM-YYYY pattern (convert to DD/MM/YYYY)
-                r'(\d{1,2}\.\d{1,2}\.\d{4})',  # DD.MM.YYYY pattern (convert to DD/MM/YYYY)
-            ]
-            
-            for pattern in date_patterns:
-                match = re.search(pattern, extraction_text, re.IGNORECASE)
-                if match:
-                    date_value = match.group(1).strip()
-                    
-                    # Convert alternative formats to DD/MM/YYYY
-                    if "-" in date_value:
-                        date_value = date_value.replace("-", "/")
-                    if "." in date_value:
-                        date_value = date_value.replace(".", "/")
-                    
-                    if validate_ethiopian_date(date_value):
-                        normalized_date = normalize_ethiopian_date(date_value)
-                        logger.info(f"Extracted date using pattern '{pattern}': '{date_value}', normalized to: '{normalized_date}'")
-                        result["Date"] = normalized_date
-                        break
-                    else:
-                        logger.warning(f"Extracted date '{date_value}' is not valid (must be DD/MM/YYYY in Ethiopian calendar)")
-        
         # If we've reached here and couldn't find any fields, log error
         if result["PatientName"] is None:
             logger.error("Failed to extract any potential patient name value")
@@ -432,16 +338,17 @@ def parse_extraction_result(extraction_text):
         if result["Telephone"] is None:
             logger.error("Failed to extract any potential telephone number value")
             
-        if result["Address"] is None:
-            logger.error("Failed to extract any potential address value")
+        if result["Kebele"] is None:
+            logger.error("Failed to extract any potential kebele value")
             
-        # Kebele and Date are optional, so we don't log an error if they're not found
+        if result["Date"] is None:
+            logger.error("Failed to extract any potential date value")
             
         return result
         
     except Exception as e:
         logger.error(f"Error parsing extraction result: {str(e)}")
-        return {"PatientName": None, "Age": None, "Sex": None, "Telephone": None, "Address": None, "Kebele": None, "Date": None}
+        return {"PatientName": None, "Age": None, "Sex": None, "Telephone": None, "Kebele": None, "Date": None}
 
 def validate_data(data):
     """
@@ -522,11 +429,15 @@ def validate_data(data):
     
     # Check if date was extracted (this field is optional)
     if data.get("Date"):
-        # Validate that date is in DD/MM/YYYY format for Ethiopian calendar
-        date = data.get("Date")
-        if not validate_ethiopian_date(date):
+        # Validate that date is a number between 1 and 30
+        try:
+            day = int(data.get("Date"))
+            if not (1 <= day <= 30):
+                is_valid = False
+                messages.append(f"Date '{day}' is not valid (must be between 1 and 30)")
+        except ValueError:
             is_valid = False
-            messages.append(f"Date '{date}' is not valid (must be DD/MM/YYYY in Ethiopian calendar)")
+            messages.append(f"Date '{data.get('Date')}' is not a valid number")
     
     # Log validation results
     if is_valid:

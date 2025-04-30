@@ -36,8 +36,7 @@ def process_image(image_path):
         parsed_data = parse_extraction_result(extracted_text)
         if not parsed_data or (parsed_data.get("PatientName") is None and parsed_data.get("Age") is None and 
                               parsed_data.get("Sex") is None and parsed_data.get("Telephone") is None and 
-                              parsed_data.get("Address") is None and parsed_data.get("Kebele") is None and 
-                              parsed_data.get("Date") is None):
+                              parsed_data.get("Kebele") is None and parsed_data.get("Date") is None):
             logger.error(f"Failed to parse extraction result for image: {image_path}")
             return None
         
@@ -53,7 +52,7 @@ def process_image(image_path):
         logger.info(f"Successfully processed image: {image_path}")
         logger.info(f"Extracted data: PatientName={parsed_data.get('PatientName')}, Age={parsed_data.get('Age')}, Sex={parsed_data.get('Sex')}, "
                    f"Telephone={parsed_data.get('Telephone')}, "
-                   f"Address={parsed_data.get('Address')}, Kebele={parsed_data.get('Kebele')}, "
+                   f"Kebele={parsed_data.get('Kebele')}, "
                    f"Date={parsed_data.get('Date')}")
         return parsed_data
         

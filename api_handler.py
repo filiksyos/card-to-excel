@@ -27,48 +27,43 @@ def extract_text_from_image(base64_image):
         "X-Title": "Medical Card Extractor"  # Optional but helpful for analytics
     }
     
-    # Updated prompt to extract patient_name, age, sex, telephone, address, kebele, and date with XML tags
+    # Updated prompt to extract patient_name, age, sex, telephone, kebele, and date with XML tags
     prompt = """
-    This is a medical card. Please extract the following information:
+    This is a medical card. Please extract ONLY the following information from their EXACT locations and ignore everything else in the image:
+
+    1. Patient's name (located in the middle-left of the card, under "Name")
+    2. Age (located in the middle of the card, under "Age")
+    3. Sex/gender (located in the middle-right of the card, under "Sex" - only respond with "M" for male or "F" for female)
+    4. Telephone number (located in the bottom-right of the card, under "Tel. No" - Ethiopian format, exactly 10 digits)
+    5. Kebele (located in the bottom-middle of the card, under "Kebele" - 2-digit district number from 01-17, might be blank)
+    6. Date (located in the top-right of the card, under "Date" - only extract the day part, e.g. if date is 15/8/2016, extract only 15)
+
+    IMPORTANT LOCATION INSTRUCTIONS:
+    - Look for the name field in the middle-left section
+    - Look for the age field in the middle section
+    - Look for the sex field in the middle-right section
+    - Look for the telephone number in the bottom-right corner
+    - Look for the kebele number in the bottom-middle section
+    - Look for the date in the top-right corner
     
-    1. Patient's name (first name and last name only, Ethiopian naming style)
-    2. Patient's age
-    3. Patient's sex/gender (only respond with "M" for male or "F" for female)
-    4. Telephone number (Ethiopian format, exactly 10 digits)
-    5. Address/location (e.g. city or town name)
-    6. Kebele (2-digit district number in Ethiopia, from 01-17, might be blank)
-    7. Date (in Ethiopian calendar, DD/MM/YYYY format)
-    
-    Note about patient name: Ethiopian names may be different from Western names. Extract the name exactly as it appears.
-    For example, "Ephraim" in Western nomenclature might be "Efrem" in Ethiopian nomenclature. 
-    The name should include only first name and last name (two words).
-    
-    Note about telephone number: Ethiopian telephone numbers are exactly 10 digits, often starting with 09.
-    
-    Note about address: Common addresses include "Bahir Dar" which might be abbreviated as "BDR", "B/dar", or "B/dr". 
-    If you see these abbreviations, extract them as is.
-    
-    Note about Kebele: This is a district number in Ethiopia, always a 2-digit number from 01 to 17. 
-    If the Kebele information is not present, leave it blank.
-    
-    Note about Date: The date is in Ethiopian calendar format (DD/MM/YYYY). If you see a date like "12/03/2012", 
-    extract it exactly as shown. Ethiopian dates use a different calendar system than the Gregorian calendar.
+    IGNORE ALL OTHER TEXT AND ELEMENTS IN THE CARD.
+    DO NOT extract any other information besides these specific fields from their specific locations.
     
     Format your response exactly like this:
     <patient_name>FIRST_NAME LAST_NAME</patient_name>
     <age>NUMBER</age>
     <sex>M_OR_F</sex>
     <telephone>10_DIGITS</telephone>
-    <address>LOCATION</address>
     <kebele>2_DIGITS_OR_BLANK</kebele>
-    <date>DD/MM/YYYY</date>
+    <date>DAY_ONLY</date>
     
-    Only use "M" or "F" for sex (not "Male" or "Female").
-    Telephone number must be exactly 10 digits in Ethiopian format.
-    For address, provide the city/town name as it appears.
-    Kebele should be a 2-digit number from 01-17 or left blank if not found.
-    Date should be in Ethiopian calendar format (DD/MM/YYYY).
-    Do not include any other text or explanations.
+    Rules:
+    - Only use "M" or "F" for sex (not "Male" or "Female")
+    - Telephone number must be exactly 10 digits in Ethiopian format
+    - Kebele should be a 2-digit number from 01-17 or left blank if not found
+    - Date should be only the day part (1-30) from the date field
+    - Extract names exactly as written, preserving Ethiopian naming style
+    - Do not include any other text or explanations
     """
     
     payload = {
@@ -148,7 +143,7 @@ def extract_text_from_image(base64_image):
                 
             # If not, try to format it with XML tags (fallback methods)
             
-            # Look for patient_name, age, sex, telephone, address, kebele, and date separately
+            # Look for patient_name, age, sex, telephone, kebele, and date separately
             import re
             
             # For responses without proper formatting

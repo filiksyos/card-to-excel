@@ -7,7 +7,7 @@ ws = wb.active
 ws.title = "Medical Card Data"
 
 # Define column headers
-headers = ["Patient Name", "Age", "Sex", "Telephone", "Address", "Kebele", "Date", "Image Filename"]
+headers = ["Patient Name", "Age", "Sex", "Telephone", "Kebele", "Date", "Image Filename"]
 
 # Add headers with formatting
 header_font = Font(bold=True, size=12)
@@ -25,10 +25,9 @@ ws.column_dimensions["A"].width = 25  # Patient Name
 ws.column_dimensions["B"].width = 15  # Age
 ws.column_dimensions["C"].width = 15  # Sex
 ws.column_dimensions["D"].width = 20  # Telephone
-ws.column_dimensions["E"].width = 25  # Address
-ws.column_dimensions["F"].width = 15  # Kebele
-ws.column_dimensions["G"].width = 20  # Date
-ws.column_dimensions["H"].width = 30  # Image Filename
+ws.column_dimensions["E"].width = 15  # Kebele
+ws.column_dimensions["F"].width = 15  # Date
+ws.column_dimensions["G"].width = 30  # Image Filename
 
 # Add a few empty rows for data
 for row in range(2, 12):
@@ -39,7 +38,6 @@ for row in range(2, 12):
     ws.cell(row=row, column=5)
     ws.cell(row=row, column=6)
     ws.cell(row=row, column=7)
-    ws.cell(row=row, column=8)
 
 # Save the workbook
 wb.save("template.xlsx")
