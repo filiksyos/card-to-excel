@@ -32,9 +32,13 @@ def extract_text_from_image(base64_image):
     This is a medical card. Please extract ONLY the following information from their EXACT locations and ignore everything else in the image:
 
     1. Patient's name (located in the middle-left of the card, under "Name")
-       - If name is in Amharic, translate it to English
+       - If name is in Amharic, keep it in Amharic - DO NOT translate to English
        - If name is partially visible, try to complete it based on common Ethiopian names
-       - Format: FIRST_NAME LAST_NAME
+       - Format: First_name Last_name (capitalize only first letter of each name)
+       - Examples:
+         * "Abebe Belayneh" (correct)
+         * "ABEBE BELAYNEH" (incorrect)
+         * "አበበ በላይነህ" (correct - keep Amharic as is)
 
     2. Age (located in the middle of the card, under "Age")
        - For ages under 1 year:
@@ -73,7 +77,8 @@ def extract_text_from_image(base64_image):
     - Look for the date in the top-right corner
     
     SPECIAL HANDLING INSTRUCTIONS:
-    - For Amharic text: Translate to English while preserving the meaning
+    - For Amharic text: Keep it in Amharic - DO NOT translate to English
+    - For names: Capitalize only first letter of first and last name
     - For incomplete information: Make reasonable guesses based on context
     - For mixed numbers: Use the format "X Y/Z" (e.g., "1 1/12") where X is 0-9, ensuring there is a space between X and Y
     - For ages under 1 year: Use "X months" or "X days" format
@@ -83,7 +88,7 @@ def extract_text_from_image(base64_image):
     DO NOT extract any other information besides these specific fields from their specific locations.
     
     Format your response exactly like this:
-    <patient_name>FIRST_NAME LAST_NAME</patient_name>
+    <patient_name>First_name Last_name</patient_name>
     <age>AGE_VALUE</age>
     <sex>M_OR_F</sex>
     <telephone>10_DIGITS</telephone>
@@ -95,7 +100,8 @@ def extract_text_from_image(base64_image):
     - Telephone number must be exactly 10 digits in Ethiopian format
     - Kebele should be a 2-digit number from 01-17 or left blank if not found
     - Date should be only the day part (1-30) from the date field
-    - Extract names exactly as written, preserving Ethiopian naming style
+    - Names should be properly capitalized (first letter of each name)
+    - Amharic names should be kept in Amharic
     - Do not include any other text or explanations
     """
     
