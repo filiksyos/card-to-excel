@@ -32,11 +32,37 @@ def extract_text_from_image(base64_image):
     This is a medical card. Please extract ONLY the following information from their EXACT locations and ignore everything else in the image:
 
     1. Patient's name (located in the middle-left of the card, under "Name")
+       - If name is in Amharic, translate it to English
+       - If name is partially visible, try to complete it based on common Ethiopian names
+       - Format: FIRST_NAME LAST_NAME
+
     2. Age (located in the middle of the card, under "Age")
-    3. Sex/gender (located in the middle-right of the card, under "Sex" - only respond with "M" for male or "F" for female)
-    4. Telephone number (located in the bottom-right of the card, under "Tel. No" - Ethiopian format, exactly 10 digits)
-    5. Kebele (located in the bottom-middle of the card, under "Kebele" - 2-digit district number from 01-17, might be blank)
-    6. Date (located in the top-right of the card, under "Date" - only extract the day part, e.g. if date is 15/8/2016, extract only 15)
+       - For ages under 1 year:
+         * If in months: write as "X months" (e.g., "4 months")
+         * If in days: write as "X days" (e.g., "28 days")
+       - For mixed numbers: write as "X Y/Z" (e.g., "1 1/12" for 1 year and 1 month)
+       - For regular ages: write the number as is
+
+    3. Sex/gender (located in the middle-right of the card, under "Sex")
+       - Only respond with "M" for male or "F" for female
+       - If unclear, make a best guess based on the name or other visible information
+
+    4. Telephone number (located in the bottom-right of the card, under "Tel. No")
+       - Ethiopian format, exactly 10 digits
+       - If number is cut off or incomplete:
+         * If starts with 09, complete with random digits to make it 10 digits
+         * If completely missing, use a placeholder like "0912345678"
+       - Format: 09XXXXXXXX
+
+    5. Kebele (located in the bottom-middle of the card, under "Kebele")
+       - 2-digit district number from 01-17
+       - If blank or unclear, leave empty
+       - If partially visible, make a best guess based on visible digits
+
+    6. Date (located in the top-right of the card, under "Date")
+       - Only extract the day part
+       - If date is cut off or unclear, make a best guess (1-30)
+       - Format: single number (e.g., "15" for 15/8/2016)
 
     IMPORTANT LOCATION INSTRUCTIONS:
     - Look for the name field in the middle-left section
@@ -46,12 +72,19 @@ def extract_text_from_image(base64_image):
     - Look for the kebele number in the bottom-middle section
     - Look for the date in the top-right corner
     
+    SPECIAL HANDLING INSTRUCTIONS:
+    - For Amharic text: Translate to English while preserving the meaning
+    - For incomplete information: Make reasonable guesses based on context
+    - For mixed numbers: Use the format "X Y/Z" (e.g., "1 1/12") where X is 0-9, ensuring there is a space between X and Y
+    - For ages under 1 year: Use "X months" or "X days" format
+    - For cut-off telephone numbers: Complete with random digits to make it 10 digits
+    
     IGNORE ALL OTHER TEXT AND ELEMENTS IN THE CARD.
     DO NOT extract any other information besides these specific fields from their specific locations.
     
     Format your response exactly like this:
     <patient_name>FIRST_NAME LAST_NAME</patient_name>
-    <age>NUMBER</age>
+    <age>AGE_VALUE</age>
     <sex>M_OR_F</sex>
     <telephone>10_DIGITS</telephone>
     <kebele>2_DIGITS_OR_BLANK</kebele>
