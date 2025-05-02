@@ -1,6 +1,63 @@
-# Medical Card Age Extraction
+# Medical Card Data Extraction
 
-Extract patient age from medical card images and output to Excel.
+This Python application processes images of medical cards and extracts key information into Excel format.
+
+## Extraction Flow
+
+```mermaid
+flowchart TD
+    A[Image Input] --> B[Image Processing]
+    B --> C[API Submission]
+    C --> D[Text Extraction]
+    D --> E[Data Parsing]
+    
+    subgraph "Enhanced Data Parsing"
+        E --> F1[Name Extraction]
+        E --> F2[Age Extraction]
+        E --> F3[Gender Extraction]
+        E --> F4[Telephone Extraction]
+        E --> F5[Kebele Extraction]
+        E --> F6[Date Extraction]
+        
+        subgraph "Gender Processing"
+            F3 --> G1{XML Tags?}
+            G1 -->|Yes| H1[Parse XML]
+            G1 -->|No| G2{Amharic Characters?}
+            G2 -->|ወ| H2[Set as M]
+            G2 -->|ሴ| H3[Set as F]
+            G2 -->|No| H4[Regex Pattern Search]
+        end
+        
+        subgraph "Kebele Processing"
+            F5 --> K1{XML Tags?}
+            K1 -->|Yes| L1[Extract Numeric Part]
+            K1 -->|No| K2[Search Kebele Patterns]
+            K2 --> L2[Extract Numbers Only]
+            L2 --> L3[Validate 01-17]
+        end
+    end
+    
+    F1 & F2 & F3 & F4 & F5 & F6 --> M[Data Validation]
+    M --> N[Excel Output]
+```
+
+## Key Features
+
+- Process medical card images (JPG, PNG) from a directory
+- Extract data fields: patient name, age, gender, telephone, kebele, date
+- Handle Amharic text, including special handling for gender characters:
+  - ወ (wä) → M (male)
+  - ሴ (se) → F (female)
+- Extract only numeric values from kebele field, ignoring text like "ቀ" or "bdr"
+- Output structured data to Excel based on predefined templates
+- Comprehensive error handling and logging
+
+## Technical Details
+
+- Uses OpenAI's o4-mini model via OpenRouter API
+- Processes images in batch (approx. 100 cards)
+- Validates all extracted data fields
+- Generates Excel output in standardized format
 
 ## Quick Setup (Windows)
 

@@ -49,6 +49,9 @@ def extract_text_from_image(base64_image):
 
     3. Sex/gender (located in the middle-right of the card, under "Sex")
        - Only respond with "M" for male or "F" for female
+       - IMPORTANT: If you see Amharic characters, translate as follows:
+         * "ወ" (wä) means male, respond with "M"
+         * "ሴ" (se) means female, respond with "F"
        - If unclear, make a best guess based on the name or other visible information
 
     4. Telephone number (located in the bottom-right of the card, under "Tel. No")
@@ -59,6 +62,8 @@ def extract_text_from_image(base64_image):
        - Format: 09XXXXXXXX
 
     5. Kebele (located in the bottom-middle of the card, under "Kebele")
+       - IMPORTANT: Focus ONLY on extracting numbers from this field
+       - Ignore text like "ቀ" or "bdr" - extract ONLY numeric values
        - 2-digit district number from 01-17
        - If blank or unclear, leave empty
        - If partially visible, make a best guess based on visible digits
@@ -83,6 +88,8 @@ def extract_text_from_image(base64_image):
     - For mixed numbers: Use the format "X Y/Z" (e.g., "1 1/12") where X is 0-9, ensuring there is a space between X and Y
     - For ages under 1 year: Use "X months" or "X days" format
     - For cut-off telephone numbers: Complete with random digits to make it 10 digits
+    - For gender in Amharic: "ወ" = "M" and "ሴ" = "F"
+    - For kebele: Extract ONLY numbers, ignore any text characters
     
     IGNORE ALL OTHER TEXT AND ELEMENTS IN THE CARD.
     DO NOT extract any other information besides these specific fields from their specific locations.
@@ -97,8 +104,9 @@ def extract_text_from_image(base64_image):
     
     Rules:
     - Only use "M" or "F" for sex (not "Male" or "Female")
+    - For Amharic gender: "ወ" translates to "M", "ሴ" translates to "F"
     - Telephone number must be exactly 10 digits in Ethiopian format
-    - Kebele should be a 2-digit number from 01-17 or left blank if not found
+    - Kebele should be a 2-digit number from 01-17 or left blank if not found (ignore any text characters)
     - Date should be only the day part (1-30) from the date field
     - Names should be properly capitalized (first letter of each name)
     - Amharic names should be kept in Amharic

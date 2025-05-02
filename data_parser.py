@@ -50,14 +50,17 @@ def validate_kebele(kebele):
     if not kebele or kebele.strip() == "":
         return True
     
+    # Extract only numeric characters before checking
+    kebele_numeric = ''.join(c for c in kebele if c.isdigit())
+    
     # Kebele must be a 2-digit number from 01-17
     try:
         # Check if it's a 2-digit string
-        if not re.match(r'^\d{2}$', kebele):
+        if not re.match(r'^\d{2}$', kebele_numeric):
             return False
         
         # Convert to integer and check range
-        kebele_int = int(kebele)
+        kebele_int = int(kebele_numeric)
         return 1 <= kebele_int <= 17
     except:
         return False
@@ -187,12 +190,14 @@ def parse_extraction_result(extraction_text):
         kebele_match = re.search(kebele_pattern, extraction_text, re.DOTALL)
         if kebele_match:
             kebele_value = kebele_match.group(1).strip()
+            # Extract only numbers from kebele value
+            kebele_numeric = ''.join(c for c in kebele_value if c.isdigit())
             # Kebele can be blank or a 2-digit number from 01-17
-            if kebele_value == "" or validate_kebele(kebele_value):
-                logger.info(f"Successfully extracted kebele from XML tags: '{kebele_value}'")
-                result["Kebele"] = kebele_value
+            if kebele_numeric == "" or validate_kebele(kebele_numeric):
+                logger.info(f"Successfully extracted kebele from XML tags: '{kebele_numeric}' (from original: '{kebele_value}')")
+                result["Kebele"] = kebele_numeric
             else:
-                logger.warning(f"Extracted kebele '{kebele_value}' is not valid (must be 01-17 or blank), ignoring")
+                logger.warning(f"Extracted kebele '{kebele_numeric}' (from original: '{kebele_value}') is not valid (must be 01-17 or blank), ignoring")
         
         # Extract date
         date_match = re.search(date_pattern, extraction_text, re.DOTALL)
@@ -277,29 +282,37 @@ def parse_extraction_result(extraction_text):
         
         # Sex fallback methods if not found
         if result["Sex"] is None:
-            # Look for sex/gender mentions
-            sex_patterns = [
-                r'\b(male|female)\b',  # Look for "male" or "female"
-                r'\b(M|F)\b',  # Look for "M" or "F"
-                r'(?:sex|gender)[:\s]*(male|female|m|f)',  # "sex: male" or "gender: F"
-                r'(?:patient|person)[\s]*is[\s]*(male|female)'  # "patient is female"
-            ]
-            
-            for pattern in sex_patterns:
-                match = re.search(pattern, extraction_text, re.IGNORECASE)
-                if match:
-                    sex_value = match.group(1).strip().upper()
-                    # Convert "MALE"/"FEMALE" to "M"/"F"
-                    if sex_value == "MALE":
-                        sex_value = "M"
-                    elif sex_value == "FEMALE":
-                        sex_value = "F"
-                        
-                    # Only accept "M" or "F"
-                    if sex_value in ["M", "F"]:
-                        logger.info(f"Extracted sex using pattern '{pattern}': {sex_value}")
-                        result["Sex"] = sex_value
-                        break
+            # Check for Amharic gender characters first
+            if "ወ" in extraction_text:
+                logger.info("Detected Amharic male character 'ወ', setting sex to 'M'")
+                result["Sex"] = "M"
+            elif "ሴ" in extraction_text:
+                logger.info("Detected Amharic female character 'ሴ', setting sex to 'F'")
+                result["Sex"] = "F"
+            else:
+                # Look for sex/gender mentions
+                sex_patterns = [
+                    r'\b(male|female)\b',  # Look for "male" or "female"
+                    r'\b(M|F)\b',  # Look for "M" or "F"
+                    r'(?:sex|gender)[:\s]*(male|female|m|f)',  # "sex: male" or "gender: F"
+                    r'(?:patient|person)[\s]*is[\s]*(male|female)'  # "patient is female"
+                ]
+                
+                for pattern in sex_patterns:
+                    match = re.search(pattern, extraction_text, re.IGNORECASE)
+                    if match:
+                        sex_value = match.group(1).strip().upper()
+                        # Convert "MALE"/"FEMALE" to "M"/"F"
+                        if sex_value == "MALE":
+                            sex_value = "M"
+                        elif sex_value == "FEMALE":
+                            sex_value = "F"
+                            
+                        # Only accept "M" or "F"
+                        if sex_value in ["M", "F"]:
+                            logger.info(f"Extracted sex using pattern '{pattern}': {sex_value}")
+                            result["Sex"] = sex_value
+                            break
         
         # Telephone number fallback if not found
         if result["Telephone"] is None:
@@ -339,7 +352,38 @@ def parse_extraction_result(extraction_text):
             logger.error("Failed to extract any potential telephone number value")
             
         if result["Kebele"] is None:
-            logger.error("Failed to extract any potential kebele value")
+            # Try to extract kebele from text with a focus on numbers only
+            kebele_patterns = [
+                r'kebele[:\s]*(\d+)', 
+                r'(?:district|area|zone)[:\s]*(\d+)',
+                r'\bkebele\b[^0-9]*(\d+)',
+                r'\bkebele\b[^0-9]*[^\w]*([\d]+)',
+                r'(?:ቀ|bdr)[^0-9]*(\d+)'  # Special patterns for kebele with Amharic or abbreviations
+            ]
+            
+            for pattern in kebele_patterns:
+                match = re.search(pattern, extraction_text, re.IGNORECASE)
+                if match:
+                    kebele_value = match.group(1).strip()
+                    # Extract only numbers
+                    kebele_numeric = ''.join(c for c in kebele_value if c.isdigit())
+                    if kebele_numeric and validate_kebele(kebele_numeric):
+                        logger.info(f"Extracted kebele using pattern '{pattern}': {kebele_numeric} (from original: '{kebele_value}')")
+                        result["Kebele"] = kebele_numeric
+                        break
+            
+            # If still not found, look for any valid-looking kebele number anywhere in the text
+            if result["Kebele"] is None:
+                # Look for standalone 2-digit numbers that might be kebele
+                standalone_numbers = re.findall(r'\b(\d{2})\b', extraction_text)
+                for num in standalone_numbers:
+                    if validate_kebele(num):
+                        logger.info(f"Extracted potential kebele from standalone number: {num}")
+                        result["Kebele"] = num
+                        break
+                        
+            if result["Kebele"] is None:
+                logger.error("Failed to extract any potential kebele value")
             
         if result["Date"] is None:
             logger.error("Failed to extract any potential date value")
@@ -421,11 +465,14 @@ def validate_data(data):
     
     # Check if kebele was extracted (this field is optional)
     if data.get("Kebele"):
-        # Validate that kebele is a 2-digit number from 01-17
+        # Extract only numbers from kebele value before validation
         kebele = data.get("Kebele")
-        if not validate_kebele(kebele):
+        kebele_numeric = ''.join(c for c in kebele if c.isdigit())
+        
+        # Validate that kebele is a 2-digit number from 01-17
+        if not validate_kebele(kebele_numeric):
             is_valid = False
-            messages.append(f"Kebele '{kebele}' is not valid (must be 01-17)")
+            messages.append(f"Kebele '{kebele}' (numeric part: '{kebele_numeric}') is not valid (must be 01-17)")
     
     # Check if date was extracted (this field is optional)
     if data.get("Date"):
