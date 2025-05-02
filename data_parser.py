@@ -50,17 +50,14 @@ def validate_kebele(kebele):
     if not kebele or kebele.strip() == "":
         return True
     
-    # Extract only numeric characters before checking
-    kebele_numeric = ''.join(c for c in kebele if c.isdigit())
-    
     # Kebele must be a 2-digit number from 01-17
     try:
         # Check if it's a 2-digit string
-        if not re.match(r'^\d{2}$', kebele_numeric):
+        if not re.match(r'^\d{2}$', kebele):
             return False
         
         # Convert to integer and check range
-        kebele_int = int(kebele_numeric)
+        kebele_int = int(kebele)
         return 1 <= kebele_int <= 17
     except:
         return False
@@ -190,30 +187,41 @@ def parse_extraction_result(extraction_text):
         kebele_match = re.search(kebele_pattern, extraction_text, re.DOTALL)
         if kebele_match:
             kebele_value = kebele_match.group(1).strip()
-            # Extract only numbers from kebele value
-            kebele_numeric = ''.join(c for c in kebele_value if c.isdigit())
             # Kebele can be blank or a 2-digit number from 01-17
-            if kebele_numeric == "" or validate_kebele(kebele_numeric):
-                logger.info(f"Successfully extracted kebele from XML tags: '{kebele_numeric}' (from original: '{kebele_value}')")
-                result["Kebele"] = kebele_numeric
+            if kebele_value == "" or validate_kebele(kebele_value):
+                logger.info(f"Successfully extracted kebele from XML tags: '{kebele_value}'")
+                result["Kebele"] = kebele_value
             else:
-                logger.warning(f"Extracted kebele '{kebele_numeric}' (from original: '{kebele_value}') is not valid (must be 01-17 or blank), ignoring")
+                logger.warning(f"Extracted kebele '{kebele_value}' is not valid (must be 01-17 or blank), ignoring")
         
         # Extract date
         date_match = re.search(date_pattern, extraction_text, re.DOTALL)
         if date_match:
             date_value = date_match.group(1).strip()
             if date_value:
-                # Validate that it's a valid day (1-30)
-                try:
+                # Check if the date is already in DD/MM/YYYY format
+                if re.match(r'^\d{1,2}/\d{1,2}/\d{4}$', date_value):
+                    logger.info(f"Successfully extracted full date: {date_value}")
+                    result["Date"] = date_value
+                # Check if date has day and month (DD/MM)
+                elif re.match(r'^\d{1,2}/\d{1,2}$', date_value):
+                    # Assume year is 2015
+                    day, month = date_value.split('/')
+                    full_date = f"{day.zfill(2)}/{month.zfill(2)}/2015"
+                    logger.info(f"Extracted day/month, added default year 2015: {full_date}")
+                    result["Date"] = full_date
+                # If only a day is provided
+                elif date_value.isdigit():
                     day = int(date_value)
                     if 1 <= day <= 30:
-                        logger.info(f"Successfully extracted day from date: {day}")
-                        result["Date"] = str(day)
+                        # Assume month is current month and year is 2015
+                        full_date = f"{str(day).zfill(2)}/01/2015"  # Default to January and 2015
+                        logger.info(f"Extracted day only, added default month and year: {full_date}")
+                        result["Date"] = full_date
                     else:
                         logger.warning(f"Extracted day '{day}' is not in valid range (1-30)")
-                except ValueError:
-                    logger.warning(f"Extracted date value '{date_value}' is not a valid number")
+                else:
+                    logger.warning(f"Extracted date value '{date_value}' is not in a recognized format")
             else:
                 logger.warning("Extracted date is empty, ignoring")
         
@@ -282,37 +290,29 @@ def parse_extraction_result(extraction_text):
         
         # Sex fallback methods if not found
         if result["Sex"] is None:
-            # Check for Amharic gender characters first
-            if "ወ" in extraction_text:
-                logger.info("Detected Amharic male character 'ወ', setting sex to 'M'")
-                result["Sex"] = "M"
-            elif "ሴ" in extraction_text:
-                logger.info("Detected Amharic female character 'ሴ', setting sex to 'F'")
-                result["Sex"] = "F"
-            else:
-                # Look for sex/gender mentions
-                sex_patterns = [
-                    r'\b(male|female)\b',  # Look for "male" or "female"
-                    r'\b(M|F)\b',  # Look for "M" or "F"
-                    r'(?:sex|gender)[:\s]*(male|female|m|f)',  # "sex: male" or "gender: F"
-                    r'(?:patient|person)[\s]*is[\s]*(male|female)'  # "patient is female"
-                ]
-                
-                for pattern in sex_patterns:
-                    match = re.search(pattern, extraction_text, re.IGNORECASE)
-                    if match:
-                        sex_value = match.group(1).strip().upper()
-                        # Convert "MALE"/"FEMALE" to "M"/"F"
-                        if sex_value == "MALE":
-                            sex_value = "M"
-                        elif sex_value == "FEMALE":
-                            sex_value = "F"
-                            
-                        # Only accept "M" or "F"
-                        if sex_value in ["M", "F"]:
-                            logger.info(f"Extracted sex using pattern '{pattern}': {sex_value}")
-                            result["Sex"] = sex_value
-                            break
+            # Look for sex/gender mentions
+            sex_patterns = [
+                r'\b(male|female)\b',  # Look for "male" or "female"
+                r'\b(M|F)\b',  # Look for "M" or "F"
+                r'(?:sex|gender)[:\s]*(male|female|m|f)',  # "sex: male" or "gender: F"
+                r'(?:patient|person)[\s]*is[\s]*(male|female)'  # "patient is female"
+            ]
+            
+            for pattern in sex_patterns:
+                match = re.search(pattern, extraction_text, re.IGNORECASE)
+                if match:
+                    sex_value = match.group(1).strip().upper()
+                    # Convert "MALE"/"FEMALE" to "M"/"F"
+                    if sex_value == "MALE":
+                        sex_value = "M"
+                    elif sex_value == "FEMALE":
+                        sex_value = "F"
+                        
+                    # Only accept "M" or "F"
+                    if sex_value in ["M", "F"]:
+                        logger.info(f"Extracted sex using pattern '{pattern}': {sex_value}")
+                        result["Sex"] = sex_value
+                        break
         
         # Telephone number fallback if not found
         if result["Telephone"] is None:
@@ -352,41 +352,48 @@ def parse_extraction_result(extraction_text):
             logger.error("Failed to extract any potential telephone number value")
             
         if result["Kebele"] is None:
-            # Try to extract kebele from text with a focus on numbers only
-            kebele_patterns = [
-                r'kebele[:\s]*(\d+)', 
-                r'(?:district|area|zone)[:\s]*(\d+)',
-                r'\bkebele\b[^0-9]*(\d+)',
-                r'\bkebele\b[^0-9]*[^\w]*([\d]+)',
-                r'(?:ቀ|bdr)[^0-9]*(\d+)'  # Special patterns for kebele with Amharic or abbreviations
-            ]
-            
-            for pattern in kebele_patterns:
-                match = re.search(pattern, extraction_text, re.IGNORECASE)
-                if match:
-                    kebele_value = match.group(1).strip()
-                    # Extract only numbers
-                    kebele_numeric = ''.join(c for c in kebele_value if c.isdigit())
-                    if kebele_numeric and validate_kebele(kebele_numeric):
-                        logger.info(f"Extracted kebele using pattern '{pattern}': {kebele_numeric} (from original: '{kebele_value}')")
-                        result["Kebele"] = kebele_numeric
-                        break
-            
-            # If still not found, look for any valid-looking kebele number anywhere in the text
-            if result["Kebele"] is None:
-                # Look for standalone 2-digit numbers that might be kebele
-                standalone_numbers = re.findall(r'\b(\d{2})\b', extraction_text)
-                for num in standalone_numbers:
-                    if validate_kebele(num):
-                        logger.info(f"Extracted potential kebele from standalone number: {num}")
-                        result["Kebele"] = num
-                        break
-                        
-            if result["Kebele"] is None:
-                logger.error("Failed to extract any potential kebele value")
+            logger.error("Failed to extract any potential kebele value")
             
         if result["Date"] is None:
             logger.error("Failed to extract any potential date value")
+            
+            # Add fallback date patterns if not found in XML tags
+            date_patterns = [
+                r'(?:date|registration date|reg date)[:\s]*(\d{1,2}/\d{1,2}/\d{4})',  # Full date: DD/MM/YYYY
+                r'(?:date|registration date|reg date)[:\s]*(\d{1,2}/\d{1,2})',  # Day and month: DD/MM
+                r'(?:date|registration date|reg date)[:\s]*(\d{1,2})',  # Only day
+                r'(\d{1,2}/\d{1,2}/\d{4})',  # Just the date format itself: DD/MM/YYYY
+                r'(\d{1,2}/\d{1,2})'  # Just day and month: DD/MM
+            ]
+            
+            for pattern in date_patterns:
+                match = re.search(pattern, extraction_text, re.IGNORECASE)
+                if match:
+                    date_value = match.group(1).strip()
+                    
+                    # Process based on format
+                    if re.match(r'^\d{1,2}/\d{1,2}/\d{4}$', date_value):
+                        # Full date in DD/MM/YYYY format
+                        day, month, year = date_value.split('/')
+                        full_date = f"{day.zfill(2)}/{month.zfill(2)}/{year}"
+                        logger.info(f"Extracted full date using pattern '{pattern}': {full_date}")
+                        result["Date"] = full_date
+                        break
+                    elif re.match(r'^\d{1,2}/\d{1,2}$', date_value):
+                        # Day and month, add default year 2015
+                        day, month = date_value.split('/')
+                        full_date = f"{day.zfill(2)}/{month.zfill(2)}/2015"
+                        logger.info(f"Extracted day/month using pattern '{pattern}', added default year 2015: {full_date}")
+                        result["Date"] = full_date
+                        break
+                    elif date_value.isdigit():
+                        # Just the day, add default month and year
+                        day = int(date_value)
+                        if 1 <= day <= 30:
+                            full_date = f"{str(day).zfill(2)}/01/2015"  # Default to January and 2015
+                            logger.info(f"Extracted day using pattern '{pattern}', added default month and year: {full_date}")
+                            result["Date"] = full_date
+                            break
             
         return result
         
@@ -465,26 +472,39 @@ def validate_data(data):
     
     # Check if kebele was extracted (this field is optional)
     if data.get("Kebele"):
-        # Extract only numbers from kebele value before validation
-        kebele = data.get("Kebele")
-        kebele_numeric = ''.join(c for c in kebele if c.isdigit())
-        
         # Validate that kebele is a 2-digit number from 01-17
-        if not validate_kebele(kebele_numeric):
+        kebele = data.get("Kebele")
+        if not validate_kebele(kebele):
             is_valid = False
-            messages.append(f"Kebele '{kebele}' (numeric part: '{kebele_numeric}') is not valid (must be 01-17)")
+            messages.append(f"Kebele '{kebele}' is not valid (must be 01-17)")
     
     # Check if date was extracted (this field is optional)
     if data.get("Date"):
-        # Validate that date is a number between 1 and 30
-        try:
-            day = int(data.get("Date"))
-            if not (1 <= day <= 30):
-                is_valid = False
-                messages.append(f"Date '{day}' is not valid (must be between 1 and 30)")
-        except ValueError:
+        # Validate that date is in DD/MM/YYYY format
+        date_str = data.get("Date")
+        if not re.match(r'^\d{1,2}/\d{1,2}/\d{4}$', date_str):
             is_valid = False
-            messages.append(f"Date '{data.get('Date')}' is not a valid number")
+            messages.append(f"Date '{date_str}' is not in valid DD/MM/YYYY format")
+        else:
+            try:
+                day, month, year = map(int, date_str.split('/'))
+                # Validate day (1-30), month (1-13), year (reasonable range)
+                if not (1 <= day <= 30):
+                    is_valid = False
+                    messages.append(f"Day in date '{date_str}' is not valid (must be between 1 and 30)")
+                if not (1 <= month <= 13):  # Ethiopian calendar has 13 months
+                    is_valid = False
+                    messages.append(f"Month in date '{date_str}' is not valid (must be between 1 and 13)")
+                if not (2000 <= year <= 2030):  # Reasonable year range
+                    is_valid = False
+                    messages.append(f"Year in date '{date_str}' is not in a reasonable range (2000-2030)")
+                # Special case for 13th month (Pagume) which has 5-6 days
+                if month == 13 and day > 6:
+                    is_valid = False
+                    messages.append(f"Day in 13th month (Pagume) cannot be more than 6, got {day}")
+            except ValueError:
+                is_valid = False
+                messages.append(f"Date '{date_str}' could not be parsed into day, month, and year")
     
     # Log validation results
     if is_valid:
