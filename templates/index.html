@@ -3,7 +3,7 @@
 {% block content %}
 <div class="max-w-3xl mx-auto space-y-8">
     <!-- Upload Section -->
-    <div class="bg-white rounded-xl shadow-sm p-6">
+    <div class="card p-6">
         <div class="drag-area" id="dragArea">
             <div class="icon">
                 <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -12,7 +12,7 @@
             </div>
             <header class="text-xl font-medium text-gray-600 mt-4">Drag & Drop to Upload File</header>
             <span class="text-gray-500 mt-2">or</span>
-            <button class="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" id="browseBtn">
+            <button class="btn-primary mt-4" id="browseBtn">
                 Browse File
             </button>
             <input type="file" hidden id="fileInput" accept=".jpg,.jpeg,.png">
@@ -21,22 +21,22 @@
     </div>
 
     <!-- Preview Section -->
-    <div id="previewSection" class="bg-white rounded-xl shadow-sm p-6 hidden">
+    <div id="previewSection" class="card p-6 hidden">
         <h2 class="text-xl font-semibold text-gray-900 mb-4">Preview</h2>
         <div class="preview-container" id="previewContainer">
             <img id="previewImage" class="w-full rounded-lg" src="" alt="Preview">
         </div>
         <div class="mt-4 flex justify-between items-center">
             <p id="fileName" class="text-gray-600"></p>
-            <button id="clearBtn" class="px-4 py-2 text-red-600 hover:text-red-700 transition-colors">
+            <button id="clearBtn" class="text-red-600 hover:text-red-700 transition-colors">
                 Clear
             </button>
         </div>
     </div>
 
     <!-- Process Section -->
-    <div id="processSection" class="bg-white rounded-xl shadow-sm p-6 hidden">
-        <button id="processBtn" class="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center">
+    <div id="processSection" class="card p-6 hidden">
+        <button id="processBtn" class="w-full btn-primary py-3 flex items-center justify-center">
             <span>Process Image</span>
             <div id="loadingSpinner" class="hidden ml-2">
                 <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -48,10 +48,10 @@
     </div>
 
     <!-- Results Section -->
-    <div id="resultsSection" class="bg-white rounded-xl shadow-sm p-6 hidden">
+    <div id="resultsSection" class="card p-6 hidden">
         <h2 class="text-xl font-semibold text-gray-900 mb-4">Results</h2>
-        <div id="extractedText" class="bg-gray-50 p-4 rounded-lg mb-4"></div>
-        <a id="downloadBtn" href="#" class="inline-block px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+        <div id="extractedText" class="bg-gray-50 p-4 rounded-lg mb-4 font-mono text-sm"></div>
+        <a id="downloadBtn" href="#" class="btn-secondary inline-block">
             Download Excel
         </a>
     </div>
