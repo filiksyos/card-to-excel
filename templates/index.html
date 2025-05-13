@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-8">
+    <!-- Upload Section -->
+    <div class="bg-white rounded-xl shadow-sm p-6">
+        <div class="drag-area" id="dragArea">
+            <div class="icon">
+                <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+            </div>
+            <header class="text-xl font-medium text-gray-600 mt-4">Drag & Drop to Upload File</header>
+            <span class="text-gray-500 mt-2">or</span>
+            <button class="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" id="browseBtn">
+                Browse File
+            </button>
+            <input type="file" hidden id="fileInput" accept=".jpg,.jpeg,.png">
+            <p class="text-sm text-gray-500 mt-2">Supported formats: JPG, JPEG, PNG</p>
+        </div>
+    </div>
+
+    <!-- Preview Section -->
+    <div id="previewSection" class="bg-white rounded-xl shadow-sm p-6 hidden">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Preview</h2>
+        <div class="preview-container" id="previewContainer">
+            <img id="previewImage" class="w-full rounded-lg" src="" alt="Preview">
+        </div>
+        <div class="mt-4 flex justify-between items-center">
+            <p id="fileName" class="text-gray-600"></p>
+            <button id="clearBtn" class="px-4 py-2 text-red-600 hover:text-red-700 transition-colors">
+                Clear
+            </button>
+        </div>
+    </div>
+
+    <!-- Process Section -->
+    <div id="processSection" class="bg-white rounded-xl shadow-sm p-6 hidden">
+        <button id="processBtn" class="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center">
+            <span>Process Image</span>
+            <div id="loadingSpinner" class="hidden ml-2">
+                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+        </button>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsSection" class="bg-white rounded-xl shadow-sm p-6 hidden">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Results</h2>
+        <div id="extractedText" class="bg-gray-50 p-4 rounded-lg mb-4"></div>
+        <a id="downloadBtn" href="#" class="inline-block px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+            Download Excel
+        </a>
+    </div>
+
+    <!-- Error Section -->
+    <div id="errorSection" class="bg-red-50 border border-red-200 rounded-xl p-6 hidden">
+        <div class="flex items-center">
+            <svg class="w-6 h-6 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p id="errorMessage" class="text-red-600"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const dragArea = document.getElementById('dragArea');
+    const fileInput = document.getElementById('fileInput');
+    const browseBtn = document.getElementById('browseBtn');
+    const previewSection = document.getElementById('previewSection');
+    const previewImage = document.getElementById('previewImage');
+    const fileName = document.getElementById('fileName');
+    const clearBtn = document.getElementById('clearBtn');
+    const processSection = document.getElementById('processSection');
+    const processBtn = document.getElementById('processBtn');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const resultsSection = document.getElementById('resultsSection');
+    const extractedText = document.getElementById('extractedText');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const errorSection = document.getElementById('errorSection');
+    const errorMessage = document.getElementById('errorMessage');
+
+    let currentFile = null;
+
+    // Drag and drop handlers
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dragArea.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dragArea.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dragArea.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight(e) {
+        dragArea.classList.add('active');
+    }
+
+    function unhighlight(e) {
+        dragArea.classList.remove('active');
+    }
+
+    dragArea.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        handleFiles(files);
+    }
+
+    browseBtn.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        handleFiles(e.target.files);
+    });
+
+    function handleFiles(files) {
+        if (files.length > 0) {
+            const file = files[0];
+            if (file.type.match('image.*')) {
+                currentFile = file;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImage.src = e.target.result;
+                    fileName.textContent = file.name;
+                    previewSection.classList.remove('hidden');
+                    processSection.classList.remove('hidden');
+                    resultsSection.classList.add('hidden');
+                    errorSection.classList.add('hidden');
+                    scrollToElement('previewSection');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                showError('Please upload an image file (JPG, JPEG, or PNG)');
+            }
+        }
+    }
+
+    clearBtn.addEventListener('click', () => {
+        currentFile = null;
+        previewImage.src = '';
+        fileName.textContent = '';
+        previewSection.classList.add('hidden');
+        processSection.classList.add('hidden');
+        resultsSection.classList.add('hidden');
+        errorSection.classList.add('hidden');
+        fileInput.value = '';
+    });
+
+    processBtn.addEventListener('click', async () => {
+        if (!currentFile) return;
+
+        loadingSpinner.classList.remove('hidden');
+        processBtn.disabled = true;
+        errorSection.classList.add('hidden');
+
+        const formData = new FormData();
+        formData.append('file', currentFile);
+
+        try {
+            const response = await fetch('/process', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                extractedText.textContent = data.extracted_text;
+                downloadBtn.href = data.excel_url;
+                resultsSection.classList.remove('hidden');
+                scrollToElement('resultsSection');
+            } else {
+                showError(data.error || 'An error occurred while processing the image');
+            }
+        } catch (error) {
+            showError('An error occurred while processing the image');
+        } finally {
+            loadingSpinner.classList.add('hidden');
+            processBtn.disabled = false;
+        }
+    });
+
+    function showError(message) {
+        errorMessage.textContent = message;
+        errorSection.classList.remove('hidden');
+        scrollToElement('errorSection');
+    }
+</script>
+{% endblock %} 

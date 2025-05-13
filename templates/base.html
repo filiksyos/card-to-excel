@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card to Excel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .drag-area {
+            border: 3px dashed #4B5563;
+            height: 300px;
+            width: 100%;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            cursor: pointer;
+        }
+        .drag-area.active {
+            border-color: #2563EB;
+            background-color: #EFF6FF;
+        }
+        .preview-container {
+            max-height: 300px;
+            overflow: hidden;
+        }
+        .preview-container img {
+            max-height: 300px;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold text-center text-gray-900 mb-8">Card to Excel</h1>
+        {% block content %}{% endblock %}
+    </div>
+    <script>
+        function scrollToElement(elementId) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    </script>
+</body>
+</html> 

@@ -16,7 +16,7 @@ SUPPORTED_FORMATS = ['.jpg', '.jpeg', '.png']
 
 # Excel Configuration
 EXCEL_TEMPLATE = os.getenv('EXCEL_TEMPLATE', 'template.xlsx')
-EXCEL_OUTPUT = os.getenv('EXCEL_OUTPUT', 'output/medical_cards_export_new.xlsx')  # New filename to avoid permission issues
+EXCEL_OUTPUT = os.getenv('EXCEL_OUTPUT', 'output/medical_data.xlsx')  # Updated to match actual file name
 
 # Logging Configuration
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'DEBUG')  # Changed from INFO to DEBUG
